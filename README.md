@@ -1,5 +1,9 @@
 # SimplyForms — Claude Code skill
 
+<p align="center">
+  <img src="docs/demo.gif" alt="60-second demo: a plain PHP contact form gets wired up to SimplyForms in one Claude Code prompt" width="760">
+</p>
+
 Wire any HTML, React, or Vue contact form to [SimplyForms](https://simplyforms.app)
 in one prompt. Claude Code reads the skill, finds the form in your project,
 repoints submissions to the SimplyForms API, embeds the spam-protection widget,
@@ -61,6 +65,22 @@ Template Studio.
   recipes, special form fields (`subject`, `ccemail`, `_*`), webhooks,
   autoresponder.
 - [Status](https://status.simplyforms.app) — service health.
+
+## Demo / contributing
+
+See [`demo/STORYBOARD.md`](demo/STORYBOARD.md) for the three-act script
+behind the GIF above. To re-record after a skill change:
+
+```bash
+brew install asciinema agg     # one-time
+./demo/record.sh               # opens asciinema, do the demo, exit; writes docs/demo.gif
+```
+
+The script copies [`demo/contact-form.html`](demo/contact-form.html) into a
+fresh working dir, records your terminal at 120×32, and converts the cast to
+a small sharp GIF via [`agg`](https://github.com/asciinema/agg).
+
+Issues and pull requests welcome.
 
 ## License
 

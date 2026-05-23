@@ -1,0 +1,5 @@
+# asciinema raw recordings — only the converted docs/demo.gif is tracked
+*.cast
+
+# macOS noise
+.DS_Store

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acme Co — Contact</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --brand: #0d9488;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 12px 40px -20px rgb(0 0 0 / .15);
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .lead { margin: 0 0 24px; color: var(--muted); font-size: 15px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    button {
+      margin-top: 22px;
+      width: 100%;
+      padding: 13px;
+      background: var(--brand);
+      color: #fff;
+      border: 0;
+      border-radius: 10px;
+      font: 600 15px/1 inherit;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.05); }
+  </style>
+</head>
+<body>
+  <section class="card">
+    <h1>Get in touch</h1>
+    <p class="lead">We typically reply within one business day.</p>
+
+    <!-- Old PHP form — this is what Claude Code is going to rewire. -->
+    <form action="/send-mail.php" method="POST">
+      <label for="name">Your name</label>
+      <input id="name" name="name" type="text" required>
+
+      <label for="email">Your e-mail</label>
+      <input id="email" name="email" type="email" required>
+
+      <label for="subject">Subject</label>
+      <select id="subject" name="subject" required>
+        <option value="">Choose…</option>
+        <option>General question</option>
+        <option>Sales enquiry</option>
+        <option>Technical support</option>
+        <option>Partnership</option>
+      </select>
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" required></textarea>
+
+      <button type="submit">Send message</button>
+    </form>
+  </section>
+</body>
+</html>

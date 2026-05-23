@@ -6,6 +6,13 @@ versioning ([semver](https://semver.org)).
 
 ## [Unreleased]
 
+### Added
+- `demo/contact-form.html` — sample "old PHP form" used as the demo target.
+- `demo/record.sh` — orchestrates a clean asciinema recording and converts
+  it to `docs/demo.gif` via `agg`.
+- `demo/STORYBOARD.md` — three-act script for the README demo GIF.
+- README demo section with regenerate instructions.
+
 ## [0.1.0] — 2026-05-23
 
 Initial public release.
