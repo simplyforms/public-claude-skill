@@ -42,7 +42,8 @@ Ask the user for anything not already provided:
 - **API key** — needed only to configure the CAPTCHA from the command line. If
   the user won't share it, they can configure CAPTCHA in the dashboard instead.
 - **Success behaviour** — show an inline "thank you" message, or redirect to a
-  page (e.g. `/thank-you`). Default: inline message.
+  page (e.g. `/thank-you`). Default: inline message (JavaScript `fetch`). A
+  redirect to a page also works with a plain HTML form and `_redirect` (Step 4).
 - **Which protection** — default to **ALTCHA** (this is "SimplyForms
   protection": self-hosted, privacy-first, no third-party account, shows a
   "Protected by SimplyForms" badge). Turnstile/reCAPTCHA need external accounts.
@@ -72,10 +73,25 @@ add the CAPTCHA widget.
 
 ## Step 4 — Rewire the submission
 
-Point the form at `POST https://api.simplyforms.app/v1/forms/{form_id}` using a
-JavaScript `fetch` handler. **Do not** rely on a plain `<form action=...>`: the
-API returns JSON, so a native post would navigate the user to raw JSON, and
-there is no server-side `_redirect`.
+Point the form at `POST https://api.simplyforms.app/v1/forms/{form_id}`. Two
+ways work:
+
+- **JavaScript `fetch` (recommended)** — the visitor stays on the page and sees
+  an inline thank-you. The API answers JSON. Use the worked example below.
+- **Plain `<form action="https://api.simplyforms.app/v1/forms/{form_id}"
+  method="POST">`** — no JavaScript needed. A browser submit gets a
+  `303 See Other` to the hosted thank-you page (`https://simplyforms.app/sent`
+  for Czech/Slovak browsers, `/en/sent` otherwise), which links back to the
+  site; a failed submit lands on the same page with a plain explanation. For
+  the user's own thank-you page add
+  `<input type="hidden" name="_redirect" value="https://their-site.example/thanks">`
+  (a path such as `/thanks` works too). `_redirect` is honoured only when it is
+  on the same origin as the page the form is on and that page is served over
+  `https` (`http` only for localhost); otherwise the hosted page is shown.
+  Fine when the user wants a redirect, or the site cannot run JavaScript.
+
+`_redirect` applies only to plain browser submits; a `fetch` call always gets
+JSON, so redirect from JavaScript there (`window.location.assign(...)`).
 
 Submit with **`FormData`** (multipart): it carries text fields, file uploads,
 and the CAPTCHA token automatically, and needs no `Content-Type` header.
@@ -130,6 +146,7 @@ and the CAPTCHA token automatically, and needs no `Content-Type` header.
         show("Thanks — your message has been sent.", true);
         // To redirect instead: window.location.assign("/thank-you");
       } else {
+        // Errors: {"ok": false, "code": "...", "message": "..."}.
         show(data.message || "Submission failed. Please try again.", false);
       }
     } catch (error) {
@@ -200,7 +217,7 @@ CAPTCHA type — check the matrix.
 |-------------|------|----------|--------|------------|
 | `none`      | ✅   | ✅       | ✅     | ✅         |
 | `altcha`    | ❌   | ✅       | ✅     | ✅         |
-| `recaptcha` v2 | ❌ | ✅      | ✅     | ✅         |
+| `recaptcha` v2 | ❌ | ❌      | ✅     | ✅         |
 | `recaptcha` v3 | ❌ | ❌      | ✅     | ✅         |
 | `turnstile` | ❌   | ❌       | ✅     | ✅         |
 | `challenge` | ❌   | ❌       | ✅     | ✅         |
@@ -235,13 +252,20 @@ copy the token into a `cf-turnstile-response` field before submitting — e.g.
 before the `fetch`: `formData.set("cf-turnstile-response",
 formData.get("g-recaptcha-response"))`. Prefer ALTCHA or Turnstile to avoid this.
 
+**Provider secrets are write-only.** No response ever returns
+`turnstile_secret_key` / `recaptcha_secret_key`; reads report
+`turnstile_secret_key_set` / `recaptcha_secret_key_set` (`true`/`false`). On
+`PUT`, a missing, `null` or empty secret keeps the stored one; to remove it
+send `"clear_turnstile_secret_key": true` (or `clear_recaptcha_secret_key`).
+
 ## Step 6 — Test it
 
 1. Run the user's site locally and open the page with the form.
 2. Submit a valid entry → expect the success message; the email lands in the
    account inbox within a moment.
 3. In dev tools → Network, confirm `POST /v1/forms/{form_id}` returns
-   `200 {"success": true}`.
+   `200 {"success": true}` (a plain HTML form instead gets a `303` to the
+   thank-you page or the `_redirect` URL).
 4. Submit without solving the CAPTCHA → expect a `400` with a CAPTCHA error and
    a visible error message.
 
@@ -252,15 +276,22 @@ formData.get("g-recaptcha-response"))`. Prefer ALTCHA or Turnstile to avoid this
 `application/x-www-form-urlencoded`, or `application/json`. No API key needed —
 the `form_id` is the credential. Embeddable on any origin.
 
-**Success:** `200 {"success": true}` (may include a `warning` if the monthly
-email quota is reached — the submission still counts).
+**Success:** `200 {"success": true}` — the notification e-mail was handed to
+the mail server. If that fails the API answers `502 DELIVERY_FAILED` and runs
+nothing else (no webhook, no autoresponder). Past the monthly e-mail limit
+submissions are still delivered within a small grace allowance (10 % by
+default), then rejected with `429 MONTHLY_EMAIL_LIMIT_REACHED` until the limit
+resets.
 
 **Success vs error — how to test it:** a successful response is the only one
-that carries `success: true`. Error responses are shaped
-`{"ok": false, "code": "...", "message": "..."}` and have **no `success` key**.
-So `response.ok && data.success` (as in the Step 4 handler) is the reliable
+that carries `success: true`. Error responses have **no `success` key**. So
+`response.ok && data.success` (as in the Step 4 handler) is the reliable
 happy-path check — do not rewrite it to test `data.success === false`, which is
 never sent.
+
+**Plain HTML form posts** (no JavaScript) never see JSON: success is a `303` to
+`_redirect` or the hosted thank-you page, an error a `303` to
+`https://simplyforms.app/sent?error=CODE`.
 
 **Field rules:**
 - Every field whose `name` does **not** start with `_` appears in the email.
@@ -270,7 +301,17 @@ never sent.
   (every plan, no configuration). Without it, falls back to "New form
   submission". EXTEND plans can override with a Jinja-rendered template in
   the dashboard (e.g. `custom_subject = "{{ subject or 'Lead received' }}"`).
-- `ccemail` — optional, semicolon-separated, max 5 — CC copies of the email.
+- `from_name` — the sender name shown in the owner's inbox, as
+  "`<from_name>` via SimplyForms" (the address stays SimplyForms'). Use a
+  hidden field with the site or form name, e.g. `<input type="hidden"
+  name="from_name" value="Acme website">`. Not listed in the email body.
+- `email` (or `_replyto`, which wins) — a valid address becomes the
+  notification's `Reply-To`, so the owner can answer the visitor with a plain
+  "Reply". Name the visitor's address field `email`.
+- `ccemail` — **deprecated, do not use.** Only addresses already configured
+  under Recipients in the dashboard pass the filter, and those receive every
+  submission anyway, so the field cannot add a recipient. Extra recipients go
+  under Recipients in the dashboard.
 - File `<input type="file">` fields are emailed as attachments. Per-submission
   cap: FREE 1 MB · STANDARD 5 MB · EXTEND 50 MB.
 - CAPTCHA token fields (`altcha`, `cf-turnstile-response`) are consumed by the
@@ -282,15 +323,35 @@ override the body and the subject in the dashboard Email Template Studio
 (`custom_body` HTML + Jinja-rendered `custom_subject` against the submission
 fields, e.g. `{{ subject or "Lead received" }}`).
 
-**Error responses:** `{"ok": false, "code": "...", "message": "..."}`. Common
-codes: `INVALID_FORM_ID` (401), `CAPTCHA_FAILED` (400), `DAILY_LIMIT_EXCEEDED`
-(429), `FILE_SIZE_LIMIT_EXCEEDED` (413), `DOMAIN_LIMIT_EXCEEDED` (403, FREE plan
-is limited to one domain — paid plans are unlimited).
+**Error responses** have one shape — `{"ok": false, "code": "...", "message":
+"...", ...extra}` at the top level. Show `data.message`, branch on `data.code`:
+
+- Request / form: `INVALID_FORM_ID_FORMAT` (400), `INVALID_FORM_ID` (401),
+  `EMPTY_PAYLOAD`, `UNSUPPORTED_CONTENT_TYPE`, `INVALID_JSON`,
+  `INVALID_PAYLOAD` (400), `INVALID_REQUEST` (422, `errors`),
+  `VALIDATION_FAILED` (400, `errors`), `DOMAIN_LIMIT_EXCEEDED` (403, the form's
+  plan does not accept this domain — FREE allows one, paid plans unlimited).
+- CAPTCHA: `CAPTCHA_FAILED` and the other CAPTCHA codes (400, may add
+  `"challenge_required": true`).
+- Limits: `FILE_SIZE_LIMIT_EXCEEDED` (413, over the plan's attachment limit),
+  `FILE_TOO_LARGE` / `PAYLOAD_TOO_LARGE` (413, over 50 MB),
+  `DAILY_LIMIT_EXCEEDED` (429, `reset_date`), `MONTHLY_EMAIL_LIMIT_REACHED`
+  (429, the owner's monthly e-mail limit and its grace are used up;
+  `reset_date`, `Retry-After`), `RATE_LIMIT_EXCEEDED` (429, `Retry-After`
+  header).
+- Server: `SUBMISSION_FAILED`, `INTERNAL_ERROR` (500), `DELIVERY_FAILED` (502,
+  the e-mail could not be sent — let the visitor try again).
+
+Every error body also carries `detail`, a copy of the same object for older
+clients. It is **deprecated** and will be removed — do not read
+`data.detail.code` in new code.
 
 ## Common mistakes
 
-- Using a plain `<form action>` with no JS → the user sees raw JSON. Always use
-  the `fetch` handler.
+- Adding `_redirect` to a form submitted with `fetch` → ignored; `fetch` always
+  gets JSON. Redirect from JavaScript instead, or use a plain form.
+- Reading `data.detail.code` / `data.detail.message` → works only during the
+  deprecation period. Read `data.code` / `data.message`.
 - Placing `<sf-captcha>` **outside** the `<form>` → its `altcha` field is not
   submitted → every submission fails the CAPTCHA. Keep it inside.
 - Embedding the widget but never configuring the CAPTCHA server-side (or vice
@@ -307,8 +368,11 @@ is limited to one domain — paid plans are unlimited).
 - **Dashboard** — <https://dash.simplyforms.app> — manage CAPTCHA, e-mail
   template (EXTEND), view usage, manage subscription.
 - **Full integration guide** — <https://simplyforms.app/docs> — HTML / JS
-  recipes, framework adapters, special form fields (`subject`, `ccemail`,
-  `_*`), webhooks, autoresponder, server-side validation.
+  recipes, framework adapters, special form fields (`subject`, `_*`),
+  webhooks, autoresponder, server-side validation.
+- **Machine-readable** — <https://simplyforms.app/llms-full.txt> (full
+  integration guide in plain text) and <https://simplyforms.app/openapi.json>
+  (public API specification).
 - **Pricing & plans** — <https://simplyforms.app/#pricing> — plan limits
   (submissions/day, e-mails/month, file size, CAPTCHA types).
 - **Status** — <https://status.simplyforms.app> — service health.

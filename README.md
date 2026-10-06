@@ -62,7 +62,7 @@ Template Studio.
 - [Dashboard](https://dash.simplyforms.app) — manage CAPTCHA, e-mail template,
   view usage, manage subscription.
 - [Full integration guide](https://simplyforms.app/docs) — HTML, JS, framework
-  recipes, special form fields (`subject`, `ccemail`, `_*`), webhooks,
+  recipes, special form fields (`subject`, `_*`), webhooks,
   autoresponder.
 - [Status](https://status.simplyforms.app) — service health.
 
