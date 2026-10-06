@@ -6,6 +6,12 @@ versioning ([semver](https://semver.org)).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-10-06
+
+### Added
+- Owner-set sender name (Standard and up, dashboard → Forms): shown without
+  "via SimplyForms" and replaces a submitted `from_name`.
+
 ## [0.4.0] — 2026-10-06
 
 ### Added

@@ -305,6 +305,9 @@ never sent.
   "`<from_name>` via SimplyForms" (the address stays SimplyForms'). Use a
   hidden field with the site or form name, e.g. `<input type="hidden"
   name="from_name" value="Acme website">`. Not listed in the email body.
+  On Standard and up the owner can instead set a fixed sender name in the
+  dashboard (Forms → Sender name): it replaces `from_name` and is shown
+  without "via SimplyForms". Prefer that over `from_name` on paid plans.
 - `email` (or `_replyto`, which wins) — a valid address becomes the
   notification's `Reply-To`, so the owner can answer the visitor with a plain
   "Reply". Name the visitor's address field `email`.
