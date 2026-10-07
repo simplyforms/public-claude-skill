@@ -245,12 +245,8 @@ API reads natively.
 
 **Google reCAPTCHA:** needs a Google account. Config body:
 `{"type":"recaptcha","recaptcha_site_key":"...","recaptcha_secret_key":"...","recaptcha_version":"v2"}`
-(`v3` adds `"recaptcha_threshold":0.5`). **Gotcha:** Google's widget outputs the
-token in a field named `g-recaptcha-response`, but the SimplyForms API only
-reads the CAPTCHA token from `cf-turnstile-response` or `altcha`. So you **must**
-copy the token into a `cf-turnstile-response` field before submitting — e.g.
-before the `fetch`: `formData.set("cf-turnstile-response",
-formData.get("g-recaptcha-response"))`. Prefer ALTCHA or Turnstile to avoid this.
+(`v3` adds `"recaptcha_threshold":0.5`). Google's widget puts its token in
+`g-recaptcha-response`, which the API reads natively.
 
 **Provider secrets are write-only.** No response ever returns
 `turnstile_secret_key` / `recaptcha_secret_key`; reads report
@@ -361,8 +357,6 @@ clients. It is **deprecated** and will be removed — do not read
   versa) → mismatch. Do **both** in Step 5.
 - Setting `Content-Type: application/json` while sending a `FormData` body →
   broken request. With `FormData`, set no `Content-Type` at all.
-- reCAPTCHA: leaving the token in `g-recaptcha-response` → the API never sees it.
-  Copy it to `cf-turnstile-response` (see provider notes).
 - Renaming existing field `name`s → the notification email labels change. Keep
   the user's original names unless asked.
 

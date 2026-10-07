@@ -6,6 +6,12 @@ versioning ([semver](https://semver.org)).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-10-08
+
+### Changed
+- reCAPTCHA: the API now reads the standard `g-recaptcha-response` field;
+  copying the token to `cf-turnstile-response` is no longer needed.
+
 ## [0.5.0] — 2026-10-06
 
 ### Added
